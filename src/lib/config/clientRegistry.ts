@@ -27,3 +27,35 @@ export const getMeasurementUnit = () => {
 
   return value.toLowerCase();
 };
+
+export const getHiddenModels = (): string[] => {
+  try {
+    const raw = localStorage.getItem('hiddenModels');
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+};
+
+export const setHiddenModels = (models: string[]) => {
+  localStorage.setItem('hiddenModels', JSON.stringify(models));
+  window.dispatchEvent(new CustomEvent('client-config-changed'));
+};
+
+export const toggleHiddenModel = (modelId: string): boolean => {
+  const current = getHiddenModels();
+  const index = current.indexOf(modelId);
+  if (index === -1) {
+    setHiddenModels([...current, modelId]);
+    return true;
+  } else {
+    setHiddenModels(current.filter((id) => id !== modelId));
+    return false;
+  }
+};
+
+export const isModelHidden = (modelId: string): boolean => {
+  return getHiddenModels().includes(modelId);
+};

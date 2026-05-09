@@ -1,12 +1,26 @@
 import { UIConfigField, ConfigModelProvider } from '@/lib/config/types';
 import { cn } from '@/lib/utils';
 import { AnimatePresence, motion } from 'framer-motion';
-import { AlertCircle, Plug2, Plus, Pencil, Trash2, X } from 'lucide-react';
+import {
+  AlertCircle,
+  Plug2,
+  Plus,
+  Pencil,
+  Trash2,
+  X,
+  Eye,
+  EyeOff,
+} from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import AddModel from './AddModelDialog';
 import UpdateProvider from './UpdateProviderDialog';
 import DeleteProvider from './DeleteProviderDialog';
+import {
+  toggleHiddenModel,
+  isModelHidden,
+  getHiddenModels,
+} from '@/lib/config/clientRegistry';
 
 const ModelProvider = ({
   modelProvider,
@@ -18,6 +32,7 @@ const ModelProvider = ({
   setProviders: React.Dispatch<React.SetStateAction<ConfigModelProvider[]>>;
 }) => {
   const [open, setOpen] = useState(true);
+  const [, forceUpdate] = useState(0);
 
   const handleModelDelete = async (
     type: 'chat' | 'embedding',
@@ -64,6 +79,17 @@ const ModelProvider = ({
       console.error('Failed to delete model', err);
       toast.error('Failed to delete model.');
     }
+  };
+
+  const handleToggleVisibility = (
+    e: React.MouseEvent,
+    providerId: string,
+    modelKey: string,
+  ) => {
+    e.stopPropagation();
+    toggleHiddenModel(`${providerId}/${modelKey}`);
+    forceUpdate((n) => n + 1);
+    window.dispatchEvent(new CustomEvent('client-config-changed'));
   };
 
   const modelCount =
@@ -141,22 +167,44 @@ const ModelProvider = ({
             ) : modelProvider.chatModels.filter((m) => m.key !== 'error')
                 .length > 0 ? (
               <div className="flex flex-row flex-wrap gap-2">
-                {modelProvider.chatModels.map((model, index) => (
-                  <div
-                    key={`${modelProvider.id}-chat-${model.key}-${index}`}
-                    className="flex flex-row items-center space-x-1.5 text-xs lg:text-xs text-black/70 dark:text-white/70 rounded-lg bg-light-secondary dark:bg-dark-secondary px-3 py-1.5 border border-light-200 dark:border-dark-200"
-                  >
-                    <span>{model.name}</span>
-                    <button
-                      onClick={() => {
-                        handleModelDelete('chat', model.key);
-                      }}
-                      className="hover:text-red-500 dark:hover:text-red-400 transition-colors"
+                {modelProvider.chatModels.map((model, index) => {
+                  const isHidden = isModelHidden(
+                    `${modelProvider.id}/${model.key}`,
+                  );
+
+                  return (
+                    <div
+                      key={`${modelProvider.id}-chat-${model.key}-${index}`}
+                      className={cn(
+                        'flex flex-row items-center space-x-1 text-xs lg:text-xs rounded-lg px-3 py-1.5 border transition-all duration-200',
+                        isHidden
+                          ? 'text-black/40 dark:text-white/40 bg-light-100 dark:bg-dark-100 border-dashed border-light-300 dark:border-dark-300'
+                          : 'text-black/70 dark:text-white/70 bg-light-secondary dark:bg-dark-secondary border-light-200 dark:border-dark-200',
+                      )}
                     >
-                      <X size={12} />
-                    </button>
-                  </div>
-                ))}
+                      <button
+                        onClick={(e) =>
+                          handleToggleVisibility(e, modelProvider.id, model.key)
+                        }
+                        className="hover:text-black/80 dark:hover:text-white/80 transition-colors mr-1"
+                        title={isHidden ? 'Show in picker' : 'Hide from picker'}
+                      >
+                        {isHidden ? <EyeOff size={12} /> : <Eye size={12} />}
+                      </button>
+                      <span className={isHidden ? 'line-through' : ''}>
+                        {model.name}
+                      </span>
+                      <button
+                        onClick={() => {
+                          handleModelDelete('chat', model.key);
+                        }}
+                        className="hover:text-red-500 dark:hover:text-red-400 transition-colors"
+                      >
+                        <X size={12} />
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
             ) : null}
           </div>
@@ -196,22 +244,44 @@ const ModelProvider = ({
             ) : modelProvider.embeddingModels.filter((m) => m.key !== 'error')
                 .length > 0 ? (
               <div className="flex flex-row flex-wrap gap-2">
-                {modelProvider.embeddingModels.map((model, index) => (
-                  <div
-                    key={`${modelProvider.id}-embedding-${model.key}-${index}`}
-                    className="flex flex-row items-center space-x-1.5 text-xs lg:text-xs text-black/70 dark:text-white/70 rounded-lg bg-light-secondary dark:bg-dark-secondary px-3 py-1.5 border border-light-200 dark:border-dark-200"
-                  >
-                    <span>{model.name}</span>
-                    <button
-                      onClick={() => {
-                        handleModelDelete('embedding', model.key);
-                      }}
-                      className="hover:text-red-500 dark:hover:text-red-400 transition-colors"
+                {modelProvider.embeddingModels.map((model, index) => {
+                  const isHidden = isModelHidden(
+                    `${modelProvider.id}/${model.key}`,
+                  );
+
+                  return (
+                    <div
+                      key={`${modelProvider.id}-embedding-${model.key}-${index}`}
+                      className={cn(
+                        'flex flex-row items-center space-x-1 text-xs lg:text-xs rounded-lg px-3 py-1.5 border transition-all duration-200',
+                        isHidden
+                          ? 'text-black/40 dark:text-white/40 bg-light-100 dark:bg-dark-100 border-dashed border-light-300 dark:border-dark-300'
+                          : 'text-black/70 dark:text-white/70 bg-light-secondary dark:bg-dark-secondary border-light-200 dark:border-dark-200',
+                      )}
                     >
-                      <X size={12} />
-                    </button>
-                  </div>
-                ))}
+                      <button
+                        onClick={(e) =>
+                          handleToggleVisibility(e, modelProvider.id, model.key)
+                        }
+                        className="hover:text-black/80 dark:hover:text-white/80 transition-colors mr-1"
+                        title={isHidden ? 'Show in picker' : 'Hide from picker'}
+                      >
+                        {isHidden ? <EyeOff size={12} /> : <Eye size={12} />}
+                      </button>
+                      <span className={isHidden ? 'line-through' : ''}>
+                        {model.name}
+                      </span>
+                      <button
+                        onClick={() => {
+                          handleModelDelete('embedding', model.key);
+                        }}
+                        className="hover:text-red-500 dark:hover:text-red-400 transition-colors"
+                      >
+                        <X size={12} />
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
             ) : null}
           </div>

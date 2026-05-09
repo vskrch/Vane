@@ -6,6 +6,8 @@ import {
   Loader2,
   Search,
   Check,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Popover, PopoverButton, PopoverPanel } from '@headlessui/react';
@@ -13,11 +15,17 @@ import { useEffect, useMemo, useState } from 'react';
 import { MinimalProvider } from '@/lib/models/types';
 import { useChat } from '@/lib/hooks/useChat';
 import { AnimatePresence, motion } from 'motion/react';
+import {
+  getHiddenModels,
+  toggleHiddenModel,
+  isModelHidden,
+} from '@/lib/config/clientRegistry';
 
 const ModelPicker = ({ compact = false }: { compact?: boolean }) => {
   const [providers, setProviders] = useState<MinimalProvider[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [hiddenModels, setHiddenModelsState] = useState<string[]>([]);
 
   const { setChatModelProvider, chatModelProvider } = useChat();
 
@@ -33,6 +41,7 @@ const ModelPicker = ({ compact = false }: { compact?: boolean }) => {
 
         const data: { providers: MinimalProvider[] } = await res.json();
         setProviders(data.providers);
+        setHiddenModelsState(getHiddenModels());
       } catch (error) {
         console.error('Error loading providers:', error);
       } finally {
@@ -73,6 +82,17 @@ const ModelPicker = ({ compact = false }: { compact?: boolean }) => {
     localStorage.setItem('chatModelKey', modelKey);
   };
 
+  const handleToggleVisibility = (
+    e: React.MouseEvent,
+    providerId: string,
+    modelKey: string,
+  ) => {
+    e.stopPropagation();
+    const modelId = `${providerId}/${modelKey}`;
+    const nowHidden = toggleHiddenModel(modelId);
+    setHiddenModelsState(getHiddenModels());
+  };
+
   const filteredProviders = orderedProviders
     .map((provider) => ({
       ...provider,
@@ -84,6 +104,20 @@ const ModelPicker = ({ compact = false }: { compact?: boolean }) => {
     }))
     .filter((provider) => provider.chatModels.length > 0);
 
+  const visibleProviders = searchQuery
+    ? filteredProviders
+    : filteredProviders
+        .map((provider) => ({
+          ...provider,
+          chatModels: provider.chatModels.filter(
+            (model) => !hiddenModels.includes(`${provider.id}/${model.key}`),
+          ),
+        }))
+        .filter((provider) => provider.chatModels.length > 0);
+
+  const displayProviders =
+    visibleProviders.length > 0 ? visibleProviders : filteredProviders;
+
   return (
     <Popover className="relative">
       {({ open }) => (
@@ -92,18 +126,13 @@ const ModelPicker = ({ compact = false }: { compact?: boolean }) => {
             type="button"
             className={cn(
               'flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all duration-200 focus:outline-none group',
-              compact
-                ? 'text-xs'
-                : 'text-sm',
+              compact ? 'text-xs' : 'text-sm',
               open
                 ? 'bg-light-200 dark:bg-dark-200 text-black dark:text-white'
                 : 'text-black/60 dark:text-white/60 hover:text-black dark:hover:text-white hover:bg-light-200/50 dark:hover:bg-dark-200/50',
             )}
           >
-            <Cpu
-              size={compact ? 14 : 16}
-              className="text-sky-500 shrink-0"
-            />
+            <Cpu size={compact ? 14 : 16} className="text-sky-500 shrink-0" />
             <span className="font-medium truncate max-w-[120px] sm:max-w-[180px]">
               {currentModelName}
             </span>
@@ -117,10 +146,7 @@ const ModelPicker = ({ compact = false }: { compact?: boolean }) => {
           </PopoverButton>
           <AnimatePresence>
             {open && (
-              <PopoverPanel
-                className="absolute z-50 left-0 mt-1"
-                static
-              >
+              <PopoverPanel className="absolute z-50 left-0 mt-1" static>
                 <motion.div
                   initial={{ opacity: 0, scale: 0.95, y: -4 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -152,7 +178,7 @@ const ModelPicker = ({ compact = false }: { compact?: boolean }) => {
                           size={20}
                         />
                       </div>
-                    ) : filteredProviders.length === 0 ? (
+                    ) : displayProviders.length === 0 ? (
                       <div className="text-center py-12 px-4 text-black/60 dark:text-white/60 text-xs">
                         {searchQuery
                           ? 'No models found'
@@ -160,7 +186,7 @@ const ModelPicker = ({ compact = false }: { compact?: boolean }) => {
                       </div>
                     ) : (
                       <div className="flex flex-col">
-                        {filteredProviders.map((provider, providerIndex) => (
+                        {displayProviders.map((provider, providerIndex) => (
                           <div key={provider.id}>
                             <div className="px-3 py-2 sticky top-0 bg-light-primary dark:bg-dark-primary border-b border-light-200/50 dark:border-dark-200/50">
                               <p className="text-[11px] text-black/50 dark:text-white/50 uppercase tracking-wider font-medium">
@@ -173,18 +199,18 @@ const ModelPicker = ({ compact = false }: { compact?: boolean }) => {
                                   chatModelProvider?.providerId ===
                                     provider.id &&
                                   chatModelProvider?.key === model.key;
+                                const modelId = `${provider.id}/${model.key}`;
+                                const isHidden = hiddenModels.includes(modelId);
+
                                 return (
                                   <button
                                     key={model.key}
                                     onClick={() =>
-                                      handleModelSelect(
-                                        provider.id,
-                                        model.key,
-                                      )
+                                      handleModelSelect(provider.id, model.key)
                                     }
                                     type="button"
                                     className={cn(
-                                      'flex items-center gap-2.5 px-3 py-2 rounded-lg text-left transition-all duration-150 text-xs',
+                                      'flex items-center gap-2.5 px-3 py-2 rounded-lg text-left transition-all duration-150 text-xs group',
                                       isSelected
                                         ? 'bg-sky-500/10 text-sky-600 dark:text-sky-400'
                                         : 'text-black/70 dark:text-white/70 hover:bg-light-secondary dark:hover:bg-dark-secondary',
@@ -200,14 +226,35 @@ const ModelPicker = ({ compact = false }: { compact?: boolean }) => {
                                     >
                                       {isSelected && <Check size={14} />}
                                     </div>
-                                    <span className="truncate">
+                                    <span className="truncate flex-1">
                                       {model.name}
                                     </span>
+                                    <button
+                                      onClick={(e) =>
+                                        handleToggleVisibility(
+                                          e,
+                                          provider.id,
+                                          model.key,
+                                        )
+                                      }
+                                      className="opacity-0 group-hover:opacity-100 p-1 rounded text-black/30 dark:text-white/30 hover:text-black/60 dark:hover:text-white/60 transition-all duration-150"
+                                      title={
+                                        isHidden
+                                          ? 'Show in picker'
+                                          : 'Hide from picker'
+                                      }
+                                    >
+                                      {isHidden ? (
+                                        <EyeOff size={12} />
+                                      ) : (
+                                        <Eye size={12} />
+                                      )}
+                                    </button>
                                   </button>
                                 );
                               })}
                             </div>
-                            {providerIndex < filteredProviders.length - 1 && (
+                            {providerIndex < displayProviders.length - 1 && (
                               <div className="h-px bg-light-200 dark:bg-dark-200 mx-2" />
                             )}
                           </div>

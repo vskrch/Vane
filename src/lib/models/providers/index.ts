@@ -8,6 +8,8 @@ import GroqProvider from './groq';
 import LemonadeProvider from './lemonade';
 import AnthropicProvider from './anthropic';
 import LMStudioProvider from './lmstudio';
+import NvidiaProvider from './nvidia';
+import OpenAICompatibleProvider from './openaicompatible';
 
 export const providers: Record<string, ProviderConstructor<any>> = {
   openai: OpenAIProvider,
@@ -18,6 +20,8 @@ export const providers: Record<string, ProviderConstructor<any>> = {
   lemonade: LemonadeProvider,
   anthropic: AnthropicProvider,
   lmstudio: LMStudioProvider,
+  nvidia: NvidiaProvider,
+  openaicompatible: OpenAICompatibleProvider,
 };
 
 export const getModelProvidersUIConfigSection =
