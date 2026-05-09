@@ -5,14 +5,14 @@
   "author": "ItzCrazyKns",
   "scripts": {
     "dev": "next dev",
-    "build": "next build --webpack",
+    "build": "next build",
     "start": "next start",
     "lint": "next lint",
     "format:write": "prettier . --write",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "heroku-postbuild": ""
+    "heroku-postbuild": "ls -la .next/BUILD_ID 2>&1 || echo 'MISSING BUILD_ID' && pwd && ls .next/ 2>&1 | head -20"
   },
   "dependencies": {
     "@google/genai": "^1.34.0",
