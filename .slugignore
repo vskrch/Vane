@@ -1,0 +1,8 @@
+*.map
+.git
+.github
+docker-compose.yaml
+Dockerfile*
+searxng/
+drizzle/
+data/
