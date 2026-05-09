@@ -5,7 +5,7 @@ RUN apt-get update && apt-get install -y python3 python3-pip sqlite3 && rm -rf /
 WORKDIR /home/vane
 
 COPY package.json package-lock.json ./
-RUN npm install --legacy-peer-deps --network-timeout 600000
+RUN npm install --legacy-peer-deps
 
 COPY tsconfig.json next.config.mjs next-env.d.ts postcss.config.js drizzle.config.ts tailwind.config.ts ./
 COPY src ./src
@@ -34,7 +34,7 @@ COPY drizzle ./drizzle
 
 RUN mkdir /home/vane/uploads
 
-RUN npm install playwright --legacy-peer-deps
+RUN npm install playwright
 RUN npx playwright install --with-deps --only-shell chromium
 
 RUN useradd --shell /bin/bash --system \
