@@ -3,7 +3,11 @@ import path from 'path';
 import fs from 'fs';
 
 const DATA_DIR = process.env.DATA_DIR || process.cwd();
-const dbPath = path.join(DATA_DIR, './data/db.sqlite');
+const dbDir = path.join(DATA_DIR, 'data');
+if (!fs.existsSync(dbDir)) {
+  fs.mkdirSync(dbDir, { recursive: true });
+}
+const dbPath = path.join(dbDir, 'db.sqlite');
 
 const db = new Database(dbPath);
 
