@@ -34,7 +34,7 @@ COPY drizzle ./drizzle
 
 RUN mkdir /home/vane/uploads
 
-RUN npm install playwright
+RUN npm install --legacy-peer-deps playwright
 RUN npx playwright install --with-deps --only-shell chromium
 
 RUN useradd --shell /bin/bash --system \
