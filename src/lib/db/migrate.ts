@@ -11,7 +11,7 @@ const dbPath = path.join(dbDir, 'db.sqlite');
 
 const db = new Database(dbPath);
 
-const migrationsFolder = path.join(DATA_DIR, 'drizzle');
+const migrationsFolder = path.join(process.cwd(), 'drizzle');
 
 db.exec(`
   CREATE TABLE IF NOT EXISTS ran_migrations (

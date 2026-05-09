@@ -1,6 +1,7 @@
-node_modules
-!.next/standalone/node_modules
-src/
-public/
+*.map
+.git
+.github
 tests/
-**/__tests__/
+searxng/
+Dockerfile*
+docker-compose.yaml

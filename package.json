@@ -11,8 +11,7 @@
     "format:write": "prettier . --write",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage",
-    "heroku-postbuild": "cp -r public .next/standalone/ && mkdir -p .next/standalone/data && cp -r drizzle .next/standalone/ && echo 'Postbuild complete'"
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@google/genai": "^1.34.0",
