@@ -27,6 +27,6 @@ else
 fi
 
 cd /home/vane
-echo "Starting Vane..."
+echo "Starting Vane on port ${PORT:-3000}..."
 
-exec node server.js
+exec node server.js -p ${PORT:-3000}
