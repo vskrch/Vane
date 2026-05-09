@@ -3,9 +3,6 @@ import BaseEmbedding from "../models/base/embedding"
 import crypto from "crypto"
 import fs from 'fs';
 import { splitText } from "../utils/splitText";
-import { PDFParse } from 'pdf-parse';
-import { CanvasFactory } from 'pdf-parse/worker';
-import officeParser from 'officeparser'
 
 const supportedMimeTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain'] as const
 
@@ -113,6 +110,9 @@ class UploadManager {
 
                 return contentPath;
             case 'application/pdf':
+                const { PDFParse } = await import('pdf-parse');
+                const { CanvasFactory } = await import('pdf-parse/worker');
+
                 const pdfBuffer = fs.readFileSync(filePath);
 
                 const parser = new PDFParse({
@@ -144,6 +144,8 @@ class UploadManager {
 
                 return pdfContentPath;
             case 'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
+                const officeParser = (await import('officeparser')).default;
+
                 const docBuffer = fs.readFileSync(filePath);
 
                 const docText = (await officeParser.parseOffice(docBuffer)).toText()
