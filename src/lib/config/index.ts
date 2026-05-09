@@ -129,11 +129,33 @@ class ConfigManager {
     this.initializeFromEnv();
   }
 
+  private syncFromDisk() {
+    try {
+      if (fs.existsSync(this.configPath)) {
+        const raw = fs.readFileSync(this.configPath, 'utf-8');
+        const disk = JSON.parse(raw);
+        if (disk && typeof disk === 'object') {
+          this.currentConfig = { ...this.currentConfig, ...disk };
+        }
+      }
+    } catch (err) {
+      console.error('Failed to sync config from disk:', err);
+    }
+  }
+
   private saveConfig() {
-    fs.writeFileSync(
-      this.configPath,
-      JSON.stringify(this.currentConfig, null, 2),
-    );
+    try {
+      const dir = path.dirname(this.configPath);
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+      }
+      fs.writeFileSync(
+        this.configPath,
+        JSON.stringify(this.currentConfig, null, 2),
+      );
+    } catch (err) {
+      console.error('Failed to save config:', err);
+    }
   }
 
   private initializeConfig() {
@@ -369,14 +391,15 @@ class ConfigManager {
   }
 
   public isSetupComplete() {
+    this.syncFromDisk();
     return this.currentConfig.setupComplete;
   }
 
   public markSetupComplete() {
+    this.syncFromDisk();
     if (!this.currentConfig.setupComplete) {
       this.currentConfig.setupComplete = true;
     }
-
     this.saveConfig();
   }
 
@@ -385,6 +408,7 @@ class ConfigManager {
   }
 
   public getCurrentConfig(): Config {
+    this.syncFromDisk();
     return JSON.parse(JSON.stringify(this.currentConfig));
   }
 }
