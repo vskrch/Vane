@@ -6,3 +6,8 @@ Dockerfile*
 searxng/
 drizzle/
 data/
+tests/
+src/**/__tests__/
+vitest.config.ts
+*.test.ts
+*.test.tsx

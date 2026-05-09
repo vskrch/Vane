@@ -17,7 +17,6 @@
     "@google/genai": "^1.34.0",
     "@headlessui/react": "^2.2.0",
     "@headlessui/tailwindcss": "^0.2.2",
-    "@huggingface/transformers": "^3.8.1",
     "@icons-pack/react-simple-icons": "^12.3.0",
     "@mozilla/readability": "^0.6.0",
     "@phosphor-icons/react": "^2.1.10",
@@ -30,7 +29,6 @@
     "clsx": "^2.1.0",
     "drizzle-orm": "^0.45.2",
     "js-tiktoken": "^1.0.21",
-    "jspdf": "^4.2.1",
     "lightweight-charts": "^5.0.9",
     "lucide-react": "^0.556.0",
     "mammoth": "^1.9.1",
@@ -39,12 +37,9 @@
     "motion": "^12.23.26",
     "next": "^16.0.7",
     "next-themes": "^0.3.0",
-    "officeparser": "^6.0.7",
     "ollama": "^0.6.3",
     "openai": "^6.9.0",
     "partial-json": "^0.1.7",
-    "pdf-parse": "^2.4.5",
-    "playwright": "^1.59.1",
     "react": "^18",
     "react-dom": "^18",
     "react-syntax-highlighter": "^16.1.0",
@@ -80,7 +75,12 @@
     "vitest": "^3.2.4"
   },
   "optionalDependencies": {
-    "@napi-rs/canvas": "^0.1.87"
+    "@huggingface/transformers": "^3.8.1",
+    "@napi-rs/canvas": "^0.1.87",
+    "jspdf": "^4.2.1",
+    "officeparser": "^6.0.7",
+    "pdf-parse": "^2.4.5",
+    "playwright": "^1.59.1"
   },
   "engines": {
     "node": ">=20.0.0"
