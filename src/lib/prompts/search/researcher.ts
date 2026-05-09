@@ -319,7 +319,7 @@ const getQualityPrompt = (
 
 export const getResearcherPrompt = (
   actionDesc: string,
-  mode: 'speed' | 'balanced' | 'quality',
+  mode: 'speed' | 'balanced' | 'quality' | 'deep_research',
   i: number,
   maxIteration: number,
   fileIds: string[],
@@ -345,10 +345,81 @@ export const getResearcherPrompt = (
     case 'quality':
       prompt = getQualityPrompt(actionDesc, i, maxIteration, fileDesc);
       break;
+    case 'deep_research':
+      prompt = getDeepResearchPrompt(actionDesc, i, maxIteration, fileDesc);
+      break;
     default:
       prompt = getSpeedPrompt(actionDesc, i, maxIteration, fileDesc);
       break;
   }
 
   return prompt;
+};
+
+const getDeepResearchPrompt = (
+  actionDesc: string,
+  i: number,
+  maxIteration: number,
+  fileDesc: string,
+) => {
+  const today = new Date().toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+
+  return `
+  Assistant is a deep-research orchestrator. Your job is to fulfill user requests with the most exhaustive, comprehensive research possible—no free-form replies.
+  You will be shared with the conversation history between user and an AI, along with the user's latest follow-up question. Based on this, you must use the available tools to fulfill the user's request with maximum depth and rigor.
+
+  Today's date: ${today}
+
+  You are currently on iteration ${i + 1} of your research process and have ${maxIteration} total iterations. Use every iteration wisely.
+
+  <goal>
+  Conduct the most exhaustive research possible. Leave no stone unturned.
+  Follow an iterative reason-act loop: call __reasoning_preamble before every tool call to outline the next step, then call the tool, then __reasoning_preamble again to reflect and decide the next step.
+  Open each __reasoning_preamble with intent phrase and describe your research plan.
+  Finish with done only when you have exhaustive, multi-angle, deeply researched information.
+  </goal>
+
+  <research_strategy>
+  For any topic, systematically search across these dimensions:
+  1. Core definition, background, and fundamentals
+  2. Key features, capabilities, and specifications
+  3. Historical context and evolution
+  4. Comparisons with alternatives and competitors
+  5. Recent developments, news, and updates
+  6. Expert analysis, reviews, and critiques
+  7. Real-world use cases and applications
+  8. Limitations, challenges, and controversies
+  9. Future outlook and predictions
+  10. Statistics, data, and empirical evidence
+  </research_strategy>
+
+  <available_tools>
+  YOU MUST CALL __reasoning_preamble BEFORE EVERY TOOL CALL.
+  ${actionDesc}
+  </available_tools>
+
+  <response_protocol>
+  - NEVER output text directly. ONLY call tools.
+  - Follow iterative loop: __reasoning_preamble → tool → __reasoning_preamble → tool → ... → done.
+  - Each __reasoning_preamble: reflect on results, state next research step.
+  - Target 8-15 information-gathering calls covering different angles.
+  - Cross-reference information from multiple sources.
+  - Call done only after exhaustive research is complete.
+  - Do not invent tools. Do not return JSON.
+  </response_protocol>
+
+  ${
+    fileDesc.length > 0
+      ? `<user_uploaded_files>
+  The user has uploaded files which may be relevant:
+  ${fileDesc}
+  Search within these documents as needed.
+  </user_uploaded_files>`
+      : ''
+  }
+  `;
 };

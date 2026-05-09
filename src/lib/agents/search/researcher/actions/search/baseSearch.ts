@@ -417,6 +417,224 @@ export const executeSearch = async (input: {
     );
 
     return extractedFacts;
+  } else if (input.mode === 'deep_research') {
+    const searchResultsBlockId = crypto.randomUUID();
+    let searchResultsEmitted = false;
+
+    const searchResults: Chunk[] = [];
+
+    const search = async (q: string) => {
+      const res = await searchSearxng(q, {
+        ...(input.searchConfig ? input.searchConfig : {}),
+      });
+
+      let resultChunks: Chunk[] = [];
+
+      resultChunks = res.results.map((r) => {
+        const content = r.content || r.title;
+
+        return {
+          content,
+          metadata: {
+            title: r.title,
+            url: r.url,
+            similarity: 1,
+            embedding: [],
+          },
+        };
+      });
+
+      searchResults.push(...resultChunks);
+
+      if (!searchResultsEmitted) {
+        searchResultsEmitted = true;
+
+        researchBlock.data.subSteps.push({
+          id: searchResultsBlockId,
+          type: 'search_results',
+          reading: resultChunks,
+        });
+
+        input.session.updateBlock(researchBlock.id, [
+          {
+            op: 'replace',
+            path: '/data/subSteps',
+            value: researchBlock.data.subSteps,
+          },
+        ]);
+      } else if (searchResultsEmitted) {
+        const subStepIndex = researchBlock.data.subSteps.findIndex(
+          (step) => step.id === searchResultsBlockId,
+        );
+
+        const subStep = researchBlock.data.subSteps[
+          subStepIndex
+        ] as SearchResultsResearchBlock;
+
+        subStep.reading.push(...resultChunks);
+
+        input.session.updateBlock(researchBlock.id, [
+          {
+            op: 'replace',
+            path: '/data/subSteps',
+            value: researchBlock.data.subSteps,
+          },
+        ]);
+      }
+    };
+
+    await Promise.all(input.queries.map(search));
+
+    const pickerPrompt = `
+      Assistant is an AI search result picker for DEEP RESEARCH mode. Your task is to pick up to 5 of the most relevant, high-quality search results that can be scraped for comprehensive information.
+      
+      ## Selection Criteria:
+      1. Relevance to the query: Must directly address the user's question.
+      2. Authority: Prefer reputable sources (official docs, academic papers, established publications).
+      3. Depth potential: Results likely to contain substantial, detailed content.
+      4. Diversity: Cover different angles, perspectives, and aspects of the topic.
+      5. Freshness: Prioritize recent information when timeliness matters.
+      6. Pick up to 5 results; minimum 2 unless search is near-empty.
+      
+      ## Output format
+      Return a JSON array of indices. Example: {"picked_indices": [0,2,4,5,7]}
+      `;
+
+    const pickerSchema = z.object({
+      picked_indices: z
+        .array(z.number())
+        .describe(
+          'The array of the picked indices to be scraped for answering',
+        ),
+    });
+
+    const pickerResponse = await input.llm.generateObject<typeof pickerSchema>({
+      schema: pickerSchema,
+      messages: [
+        {
+          role: 'system',
+          content: pickerPrompt,
+        },
+        {
+          role: 'user',
+          content: `<queries>${input.queries.join(', ')}</queries>\n<search_results>${searchResults.map((result, index) => `<result indice=${index}>${JSON.stringify(result)}</result>`).join('\n')}</search_results>`,
+        },
+      ],
+    });
+
+    const pickedIndices = pickerResponse.picked_indices.slice(0, 5);
+    const pickedResults = pickedIndices
+      .map((i) => searchResults[i])
+      .filter((r) => r !== undefined);
+
+    const alreadyExtractedURLs: string[] = [];
+    researchBlock.data.subSteps.forEach((step) => {
+      if (step.type === 'reading') {
+        step.reading.forEach((chunk) => {
+          alreadyExtractedURLs.push(chunk.metadata.url);
+        });
+      }
+    });
+
+    const filteredResults = pickedResults.filter(
+      (r) => !alreadyExtractedURLs.find((url) => url === r.metadata.url),
+    );
+
+    if (filteredResults.length > 0) {
+      researchBlock.data.subSteps.push({
+        id: crypto.randomUUID(),
+        type: 'reading',
+        reading: filteredResults,
+      });
+
+      input.session.updateBlock(researchBlock.id, [
+        {
+          path: '/data/subSteps',
+          op: 'replace',
+          value: researchBlock.data.subSteps,
+        },
+      ]);
+    }
+
+    const extractedFacts: Chunk[] = [];
+
+    const extractorPrompt = `
+      Assistant is an AI information extractor for DEEP RESEARCH. Extract every relevant fact from the scraped data with maximum detail.
+      
+      ## Extraction Rules:
+      1. Be exhaustive - extract ALL facts, data points, statistics, and details that relate to the query.
+      2. Preserve numerical data with complete accuracy - never summarize numbers.
+      3. Extract definitions, specifications, comparisons, and contextual information.
+      4. Merge duplicate information across chunks into comprehensive bullet points.
+      5. Ignore noise (nav, ads, boilerplate) but preserve substantive content.
+      6. Format as concise, telegram-style bullet points.
+      7. If the content contains structured data (tables, lists), preserve the structure.
+      
+      ## Output format
+      Return JSON: {"extracted_facts": "- Fact 1\\n- Fact 2\\n- Fact 3"}
+      `;
+
+    const extractorSchema = z.object({
+      extracted_facts: z
+        .string()
+        .describe('The extracted facts relevant to the query in bullet points'),
+    });
+
+    await Promise.all(
+      filteredResults.map(async (result) => {
+        try {
+          const scrapedData = await Scraper.scrape(result.metadata.url).catch(
+            (err) => {
+              console.log('Error scraping data from', result.metadata.url, err);
+            },
+          );
+
+          if (!scrapedData) return;
+
+          let accumulatedContent = '';
+          const chunks = splitText(scrapedData.content, 4000, 500);
+
+          await Promise.all(
+            chunks.map(async (chunk) => {
+              try {
+                const extractorOutput = await input.llm.generateObject<
+                  typeof extractorSchema
+                >({
+                  schema: extractorSchema,
+                  messages: [
+                    {
+                      role: 'system',
+                      content: extractorPrompt,
+                    },
+                    {
+                      role: 'user',
+                      content: `<queries>${input.queries.join(', ')}</queries>\n<scraped_data>${chunk}</scraped_data>`,
+                    },
+                  ],
+                });
+
+                accumulatedContent += extractorOutput.extracted_facts + '\n';
+              } catch (err) {
+                console.log('Error extracting information from chunk', err);
+              }
+            }),
+          );
+
+          extractedFacts.push({
+            ...result,
+            content: accumulatedContent,
+          });
+        } catch (err) {
+          console.log(
+            'Error scraping or extracting information from',
+            result.metadata.url,
+            err,
+          );
+        }
+      }),
+    );
+
+    return extractedFacts;
   } else {
     return [];
   }

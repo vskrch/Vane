@@ -11,7 +11,8 @@ export type SearchAgentConfig = {
   fileIds: string[];
   llm: BaseLLM<any>;
   embedding: BaseEmbedding<any>;
-  mode: 'speed' | 'balanced' | 'quality';
+  mode: 'speed' | 'balanced' | 'quality' | 'deep_research';
+  focusMode?: 'all' | 'academic' | 'social' | 'writing' | 'math' | 'video';
   systemInstructions: string;
 };
 

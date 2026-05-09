@@ -17,7 +17,9 @@ class Researcher {
         ? 2
         : input.config.mode === 'balanced'
           ? 6
-          : 25;
+          : input.config.mode === 'deep_research'
+            ? 40
+            : 25;
 
     const availableTools = ActionRegistry.getAvailableActionTools({
       classification: input.classification,

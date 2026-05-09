@@ -52,12 +52,29 @@ class SearchAgent {
         .execute();
     }
 
-    const classification = await classify({
-      chatHistory: input.chatHistory,
-      enabledSources: input.config.sources,
-      query: input.followUp,
-      llm: input.config.llm,
-    });
+    let classification;
+
+    if (input.config.focusMode === 'writing' || input.config.focusMode === 'math') {
+      classification = {
+        classification: {
+          skipSearch: true,
+          personalSearch: false,
+          academicSearch: false,
+          discussionSearch: false,
+          showWeatherWidget: false,
+          showStockWidget: false,
+          showCalculationWidget: input.config.focusMode === 'math',
+        },
+        standaloneFollowUp: input.followUp,
+      };
+    } else {
+      classification = await classify({
+        chatHistory: input.chatHistory,
+        enabledSources: input.config.sources,
+        query: input.followUp,
+        llm: input.config.llm,
+      });
+    }
 
     const widgetPromise = WidgetExecutor.executeAll({
       classification,
@@ -123,6 +140,7 @@ class SearchAgent {
       finalContextWithWidgets,
       input.config.systemInstructions,
       input.config.mode,
+      input.config.focusMode,
     );
 
     const answerStream = input.config.llm.streamText({

@@ -56,6 +56,28 @@ You can search for 3 queries in one go, make sure to utilize all 3 queries to ma
 If this tool is present and no other tools are more relevant, you MUST use this tool to get the needed information. You can call this tools, multiple times as needed.
 `;
 
+const deepResearchModePrompt = `
+Use this tool to perform exhaustive web searches based on the provided queries. This is critical for answering the user's question thoroughly. You can provide up to 3 queries at a time. You will use this tool extensively throughout the research process.
+
+You are in DEEP RESEARCH mode with up to 40 iterations available. Use this tool repeatedly across multiple iterations to gather comprehensive information.
+
+Start with broader queries to get an overview, then progressively narrow down with more specific queries based on results.
+Search across these dimensions:
+1. Core definition and background
+2. Key features, specifications, details
+3. Comparisons and alternatives
+4. Recent news and developments
+5. Expert analysis and reviews
+6. Use cases and applications
+7. Limitations and critiques
+8. Statistics and data
+
+Your queries shouldn't be sentences but rather keywords that are SEO friendly.
+Each call can have up to 3 queries - use them all to cover different aspects.
+You MUST call this tool at least 4-6 times across your iterations to gather comprehensive information.
+If this tool is present and relevant, you MUST use it every iteration until saturation.
+`;
+
 const webSearchAction: ResearchAction<typeof actionSchema> = {
   name: 'web_search',
   schema: actionSchema,
@@ -73,6 +95,9 @@ const webSearchAction: ResearchAction<typeof actionSchema> = {
         break;
       case 'quality':
         prompt = qualityModePrompt;
+        break;
+      case 'deep_research':
+        prompt = deepResearchModePrompt;
         break;
       default:
         prompt = speedModePrompt;

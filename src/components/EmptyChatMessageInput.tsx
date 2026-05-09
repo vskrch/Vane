@@ -1,24 +1,24 @@
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Paperclip, LoaderCircle, File, Trash } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import TextareaAutosize from 'react-textarea-autosize';
-import Sources from './MessageInputActions/Sources';
-import Optimization from './MessageInputActions/Optimization';
-import Attach from './MessageInputActions/Attach';
 import { useChat } from '@/lib/hooks/useChat';
-import ModelSelector from './MessageInputActions/ChatModelSelector';
+import FocusSelector from './FocusSelector';
+import ModelPicker from './ModelPicker';
+import DeepResearchToggle from './DeepResearchToggle';
+import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 const EmptyChatMessageInput = () => {
-  const { sendMessage } = useChat();
+  const { sendMessage, files, setFiles, fileIds, setFileIds } = useChat();
 
-  /* const [copilotEnabled, setCopilotEnabled] = useState(false); */
   const [message, setMessage] = useState('');
-
+  const [uploadLoading, setUploadLoading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const activeElement = document.activeElement;
-
       const isInputFocused =
         activeElement?.tagName === 'INPUT' ||
         activeElement?.tagName === 'TEXTAREA' ||
@@ -31,7 +31,6 @@ const EmptyChatMessageInput = () => {
     };
 
     document.addEventListener('keydown', handleKeyDown);
-
     inputRef.current?.focus();
 
     return () => {
@@ -39,15 +38,60 @@ const EmptyChatMessageInput = () => {
     };
   }, []);
 
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFiles = e.target.files;
+    if (!selectedFiles?.length) return;
+
+    setUploadLoading(true);
+    try {
+      const data = new FormData();
+      for (let i = 0; i < selectedFiles.length; i++) {
+        data.append('files', selectedFiles[i]);
+      }
+
+      const embeddingModelProvider = localStorage.getItem(
+        'embeddingModelProviderId',
+      );
+      const embeddingModel = localStorage.getItem('embeddingModelKey');
+
+      if (!embeddingModelProvider || !embeddingModel) {
+        throw new Error('Please select an embedding model before uploading.');
+      }
+
+      data.append('embedding_model_provider_id', embeddingModelProvider);
+      data.append('embedding_model_key', embeddingModel);
+
+      const res = await fetch('/api/uploads', {
+        method: 'POST',
+        body: data,
+      });
+
+      const resData = await res.json().catch(() => ({}));
+      if (!res.ok)
+        throw new Error(resData.message || 'Failed to upload file(s).');
+      if (!Array.isArray(resData.files))
+        throw new Error('Invalid upload response.');
+
+      setFiles([...files, ...resData.files]);
+      setFileIds([...fileIds, ...resData.files.map((f: any) => f.fileId)]);
+    } catch (err: any) {
+      toast(err?.message || 'Failed to upload file(s).');
+    } finally {
+      setUploadLoading(false);
+      e.target.value = '';
+    }
+  };
+
   return (
     <form
       onSubmit={(e) => {
         e.preventDefault();
+        if (!message.trim()) return;
         sendMessage(message);
         setMessage('');
       }}
       onKeyDown={(e) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
+        if (e.key === 'Enter' && !e.shiftKey && message.trim()) {
           e.preventDefault();
           sendMessage(message);
           setMessage('');
@@ -55,29 +99,87 @@ const EmptyChatMessageInput = () => {
       }}
       className="w-full"
     >
-      <div className="flex flex-col bg-light-secondary dark:bg-dark-secondary px-3 pt-5 pb-3 rounded-2xl w-full border border-light-200 dark:border-dark-200 shadow-sm shadow-light-200/10 dark:shadow-black/20 transition-all duration-200 focus-within:border-light-300 dark:focus-within:border-dark-300">
-        <TextareaAutosize
-          ref={inputRef}
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          minRows={2}
-          className="px-2 bg-transparent placeholder:text-[15px] placeholder:text-black/50 dark:placeholder:text-white/50 text-sm text-black dark:text-white resize-none focus:outline-none w-full max-h-24 lg:max-h-36 xl:max-h-48"
-          placeholder="Ask anything..."
-        />
-        <div className="flex flex-row items-center justify-between mt-4">
-          <Optimization />
-          <div className="flex flex-row items-center space-x-2">
-            <div className="flex flex-row items-center space-x-1">
-              <Sources />
-              <ModelSelector />
-              <Attach />
-            </div>
+      <div className="flex flex-col bg-light-secondary dark:bg-dark-secondary rounded-2xl w-full border border-light-200 dark:border-dark-200 shadow-sm shadow-light-200/10 dark:shadow-black/20 transition-all duration-200 focus-within:border-light-300 dark:focus-within:border-dark-300 overflow-hidden">
+        <div className="flex items-center px-4 pt-3 pb-2">
+          <TextareaAutosize
+            ref={inputRef}
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            minRows={1}
+            className="flex-1 bg-transparent placeholder:text-[15px] placeholder:text-black/40 dark:placeholder:text-white/40 text-sm text-black dark:text-white resize-none focus:outline-none max-h-24 lg:max-h-36 xl:max-h-48"
+            placeholder="Ask anything..."
+          />
+          <div className="flex items-center gap-1 ml-2">
+            {uploadLoading ? (
+              <div className="p-2 text-black/50 dark:text-white/50">
+                <LoaderCircle size={16} className="animate-spin text-sky-500" />
+              </div>
+            ) : (
+              <>
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileUpload}
+                  accept=".pdf,.docx,.txt"
+                  multiple
+                  hidden
+                />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="p-2 rounded-lg text-black/50 dark:text-white/50 hover:text-black dark:hover:text-white hover:bg-light-200 dark:hover:bg-dark-200 transition-all duration-200"
+                  title="Attach file"
+                >
+                  <Paperclip size={16} />
+                </button>
+              </>
+            )}
             <button
               disabled={message.trim().length === 0}
-              className="bg-sky-500 text-white disabled:text-black/50 dark:disabled:text-white/50 disabled:bg-[#e0e0dc] dark:disabled:bg-[#ececec21] hover:bg-opacity-85 transition duration-100 rounded-full p-2"
+              className={cn(
+                'rounded-full p-2 transition-all duration-200',
+                message.trim().length > 0
+                  ? 'bg-sky-500 text-white hover:bg-sky-600 shadow-sm shadow-sky-500/20'
+                  : 'bg-light-200 dark:bg-dark-200 text-black/30 dark:text-white/30',
+              )}
             >
-              <ArrowRight className="bg-background" size={17} />
+              <ArrowRight size={17} />
             </button>
+          </div>
+        </div>
+
+        {files.length > 0 && (
+          <div className="flex items-center gap-2 px-4 pb-2 flex-wrap">
+            {files.map((file, i) => (
+              <div
+                key={i}
+                className="flex items-center gap-1.5 px-2 py-1 bg-light-100 dark:bg-dark-100 rounded-md text-xs text-black/70 dark:text-white/70 border border-light-200 dark:border-dark-200"
+              >
+                <File size={12} />
+                <span className="max-w-[120px] truncate">{file.fileName}</span>
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={() => {
+                setFiles([]);
+                setFileIds([]);
+              }}
+              className="p-1 rounded-md text-black/50 dark:text-white/50 hover:text-red-500 hover:bg-light-200 dark:hover:bg-dark-200 transition-all duration-200"
+              title="Clear files"
+            >
+              <Trash size={12} />
+            </button>
+          </div>
+        )}
+
+        <div className="flex items-center justify-between px-3 py-2 border-t border-light-200/50 dark:border-dark-200/50">
+          <div className="flex items-center gap-1 overflow-x-auto">
+            <FocusSelector />
+          </div>
+          <div className="flex items-center gap-1 shrink-0">
+            <DeepResearchToggle />
+            <ModelPicker compact />
           </div>
         </div>
       </div>

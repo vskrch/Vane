@@ -33,9 +33,13 @@ const embeddingModelSchema: z.ZodType<ModelWithProvider> = z.object({
 
 const bodySchema = z.object({
   message: messageSchema,
-  optimizationMode: z.enum(['speed', 'balanced', 'quality'], {
-    message: 'Optimization mode must be one of: speed, balanced, quality',
+  optimizationMode: z.enum(['speed', 'balanced', 'quality', 'deep_research'], {
+    message: 'Optimization mode must be one of: speed, balanced, quality, deep_research',
   }),
+  focusMode: z
+    .enum(['all', 'academic', 'social', 'writing', 'math', 'video'])
+    .optional()
+    .default('all'),
   sources: z.array(z.string()).optional().default([]),
   history: z
     .array(z.tuple([z.string(), z.string()]))
@@ -220,6 +224,7 @@ export const POST = async (req: Request) => {
         embedding: embedding,
         sources: body.sources as SearchSources[],
         mode: body.optimizationMode,
+        focusMode: body.focusMode,
         fileIds: body.files,
         systemInstructions: body.systemInstructions || 'None',
       },

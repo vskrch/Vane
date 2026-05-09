@@ -19,6 +19,8 @@ import { getAutoMediaSearch } from '../config/clientRegistry';
 import { applyPatch } from 'rfc6902';
 import { Widget } from '@/components/ChatWindow';
 
+export type FocusMode = 'all' | 'academic' | 'social' | 'writing' | 'math' | 'video';
+
 export type Section = {
   message: Message;
   widgets: Widget[];
@@ -37,6 +39,8 @@ type ChatContext = {
   sources: string[];
   chatId: string | undefined;
   optimizationMode: string;
+  focusMode: FocusMode;
+  deepResearch: boolean;
   isMessagesLoaded: boolean;
   loading: boolean;
   notFound: boolean;
@@ -47,6 +51,8 @@ type ChatContext = {
   embeddingModelProvider: EmbeddingModelProvider;
   researchEnded: boolean;
   setResearchEnded: (ended: boolean) => void;
+  setFocusMode: (mode: FocusMode) => void;
+  setDeepResearch: (enabled: boolean) => void;
   setOptimizationMode: (mode: string) => void;
   setSources: (sources: string[]) => void;
   setFiles: (files: File[]) => void;
@@ -245,6 +251,8 @@ export const chatContext = createContext<ChatContext>({
   files: [],
   sources: [],
   hasError: false,
+  focusMode: 'all',
+  deepResearch: false,
   isMessagesLoaded: false,
   isReady: false,
   loading: false,
@@ -261,6 +269,8 @@ export const chatContext = createContext<ChatContext>({
   setFileIds: () => {},
   setFiles: () => {},
   setSources: () => {},
+  setFocusMode: () => {},
+  setDeepResearch: () => {},
   setOptimizationMode: () => {},
   setChatModelProvider: () => {},
   setEmbeddingModelProvider: () => {},
@@ -288,7 +298,31 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
   const [fileIds, setFileIds] = useState<string[]>([]);
 
   const [sources, setSources] = useState<string[]>(['web']);
-  const [optimizationMode, setOptimizationMode] = useState('speed');
+  const [optimizationMode, setOptimizationMode] = useState('balanced');
+  const [focusMode, setFocusMode] = useState<FocusMode>('all');
+  const [deepResearch, setDeepResearch] = useState(false);
+
+  useEffect(() => {
+    switch (focusMode) {
+      case 'academic':
+        setSources(['academic']);
+        break;
+      case 'social':
+        setSources(['discussions']);
+        break;
+      case 'writing':
+      case 'math':
+      case 'video':
+      case 'all':
+      default:
+        setSources(['web']);
+        break;
+    }
+  }, [focusMode]);
+
+  useEffect(() => {
+    setOptimizationMode(deepResearch ? 'deep_research' : 'balanced');
+  }, [deepResearch]);
 
   const [isMessagesLoaded, setIsMessagesLoaded] = useState(false);
 
@@ -666,15 +700,17 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
 
         const autoMediaSearch = getAutoMediaSearch();
 
-        if (autoMediaSearch) {
+        if (autoMediaSearch || focusMode === 'video') {
           setTimeout(() => {
             document
               .getElementById(`search-images-${lastMsg.messageId}`)
               ?.click();
 
-            document
-              .getElementById(`search-videos-${lastMsg.messageId}`)
-              ?.click();
+            if (focusMode === 'video' || autoMediaSearch) {
+              document
+                .getElementById(`search-videos-${lastMsg.messageId}`)
+                ?.click();
+            }
           }, 200);
         }
 
@@ -757,6 +793,7 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
         chatId: chatId!,
         files: fileIds,
         sources: sources,
+        focusMode: focusMode,
         optimizationMode: optimizationMode,
         history: rewrite
           ? chatHistory.current.slice(
@@ -816,6 +853,8 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
         sources,
         chatId,
         hasError,
+        focusMode,
+        deepResearch,
         isMessagesLoaded,
         isReady,
         loading,
@@ -825,6 +864,8 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
         setFileIds,
         setFiles,
         setSources,
+        setFocusMode,
+        setDeepResearch,
         setOptimizationMode,
         rewrite,
         sendMessage,

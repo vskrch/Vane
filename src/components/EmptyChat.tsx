@@ -1,10 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Settings } from 'lucide-react';
 import EmptyChatMessageInput from './EmptyChatMessageInput';
-import { File } from './ChatWindow';
-import Link from 'next/link';
 import WeatherWidget from './WeatherWidget';
 import NewsArticleWidget from './NewsArticleWidget';
 import SettingsButtonMobile from '@/components/Settings/SettingsButtonMobile';
@@ -15,10 +12,10 @@ import {
 
 const EmptyChat = () => {
   const [showWeather, setShowWeather] = useState(() =>
-    typeof window !== 'undefined' ? getShowWeatherWidget() : true,
+    typeof window !== 'undefined' ? getShowWeatherWidget() : false,
   );
   const [showNews, setShowNews] = useState(() =>
-    typeof window !== 'undefined' ? getShowNewsWidget() : true,
+    typeof window !== 'undefined' ? getShowNewsWidget() : false,
   );
 
   useEffect(() => {
@@ -42,19 +39,28 @@ const EmptyChat = () => {
   }, []);
 
   return (
-    <div className="relative">
+    <div className="relative flex flex-col min-h-screen">
       <div className="absolute w-full flex flex-row items-center justify-end mr-5 mt-5">
         <SettingsButtonMobile />
       </div>
-      <div className="flex flex-col items-center justify-center min-h-screen max-w-screen-sm mx-auto p-2 space-y-4">
-        <div className="flex flex-col items-center justify-center w-full space-y-8">
-          <h2 className="text-black/70 dark:text-white/70 text-3xl font-medium -mt-8">
-            Research begins here.
-          </h2>
-          <EmptyChatMessageInput />
+      <div className="flex flex-col items-center justify-center flex-1 px-4 -mt-16">
+        <div className="flex flex-col items-center w-full max-w-screen-md mx-auto space-y-8">
+          <div className="flex flex-col items-center space-y-3">
+            <h1 className="text-3xl sm:text-4xl font-light tracking-tight text-black/80 dark:text-white/80">
+              Direct your curiosity
+            </h1>
+            <p className="text-sm text-black/50 dark:text-white/50">
+              Ask anything, search the web, or dive deep into research
+            </p>
+          </div>
+          <div className="w-full">
+            <EmptyChatMessageInput />
+          </div>
         </div>
-        {(showWeather || showNews) && (
-          <div className="flex flex-col w-full gap-4 mt-2 sm:flex-row sm:justify-center">
+      </div>
+      {(showWeather || showNews) && (
+        <div className="pb-12 px-4">
+          <div className="flex flex-col w-full max-w-screen-md mx-auto gap-4 sm:flex-row sm:justify-center">
             {showWeather && (
               <div className="flex-1 w-full">
                 <WeatherWidget />
@@ -66,8 +72,8 @@ const EmptyChat = () => {
               </div>
             )}
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 };
