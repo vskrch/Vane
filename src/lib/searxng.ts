@@ -18,6 +18,62 @@ interface SearxngSearchResult {
   iframe_src?: string;
 }
 
+async function searchDuckDuckGo(query: string): Promise<{
+  results: SearxngSearchResult[];
+  suggestions: string[];
+}> {
+  try {
+    const url = new URL("https://lite.duckduckgo.com/lite/");
+    url.searchParams.append("q", query);
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+
+    const res = await fetch(url.toString(), {
+      signal: controller.signal,
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+        Accept: "text/html",
+        "Accept-Language": "en-US,en;q=0.9",
+      },
+    });
+    clearTimeout(timeout);
+
+    if (!res.ok) return { results: [], suggestions: [] };
+
+    const html = await res.text();
+    const results: SearxngSearchResult[] = [];
+
+    const rowRegex =
+      /<tr[^>]*class="[^"]*result[^"]*"[^>]*>[\s\S]*?<\/tr>/gi;
+    const linkRegex = /<a[^>]+href=["']([^"']+)["'][^>]*>(?:<[^>]+>)*([^<]+)/i;
+    const snippetRegex =
+      /<td[^>]*class="[^"]*result-snippet[^"]*"[^>]*>([\s\S]*?)<\/td>/i;
+
+    let match;
+    while ((match = rowRegex.exec(html)) !== null) {
+      const row = match[0];
+      const linkMatch = row.match(linkRegex);
+      const snippetMatch = row.match(snippetRegex);
+
+      if (linkMatch) {
+        results.push({
+          title: linkMatch[2]?.replace(/<[^>]+>/g, "").trim() || query,
+          url: linkMatch[1],
+          content: snippetMatch
+            ? snippetMatch[1]?.replace(/<[^>]+>/g, "").trim()
+            : "",
+        });
+      }
+    }
+
+    return { results: results.slice(0, 20), suggestions: [] };
+  } catch {
+    return { results: [], suggestions: [] };
+  }
+}
+
 export const searchSearxng = async (
   query: string,
   opts?: SearxngSearchOptions,
@@ -25,7 +81,7 @@ export const searchSearxng = async (
   const searxngURL = await getWorkingSearxngURL();
 
   if (!searxngURL) {
-    return { results: [], suggestions: [] };
+    return searchDuckDuckGo(query);
   }
 
   const url = new URL(`${searxngURL}/search?format=json`);
@@ -68,12 +124,8 @@ export const searchSearxng = async (
 
     return { results, suggestions };
   } catch (err: any) {
-    if (err.name === 'AbortError') {
-      markSearxngFailed(searxngURL);
-      throw new Error('SearXNG search timed out');
-    }
     markSearxngFailed(searxngURL);
-    throw err;
+    return searchDuckDuckGo(query);
   } finally {
     clearTimeout(timeoutId);
   }

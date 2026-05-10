@@ -1,1 +1,1 @@
-web: bash start.sh
+web: npx next start -p $PORT
