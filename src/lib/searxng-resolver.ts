@@ -4,13 +4,39 @@ interface SearXNGInstance {
   url: string;
   successRate: number;
   avgTiming: number;
+  failCount: number;
 }
 
 let cachedInstances: SearXNGInstance[] = [];
 let lastFetchTime = 0;
 let currentIndex = -1;
+let consecutiveFailures = 0;
 const CACHE_TTL = 15 * 60 * 1000;
-const FETCH_TIMEOUT = 8000;
+const FETCH_TIMEOUT = 5000;
+const MAX_CONSECUTIVE_FAILURES = 3;
+
+const FALLBACK_INSTANCES: SearXNGInstance[] = [
+  {
+    url: 'https://baresearch.org',
+    successRate: 100,
+    avgTiming: 0.9,
+    failCount: 0,
+  },
+  {
+    url: 'https://search.sapti.me',
+    successRate: 98,
+    avgTiming: 0.8,
+    failCount: 0,
+  },
+  { url: 'https://paulgo.io', successRate: 97, avgTiming: 0.7, failCount: 0 },
+  { url: 'https://searx.be', successRate: 96, avgTiming: 0.6, failCount: 0 },
+  {
+    url: 'https://search.hbubli.cc',
+    successRate: 95,
+    avgTiming: 0.8,
+    failCount: 0,
+  },
+];
 
 const SEARX_SPACE_URL = 'https://searx.space/data/instances.json';
 
@@ -35,29 +61,40 @@ async function fetchInstances(): Promise<SearXNGInstance[]> {
 
     for (const [url, info] of Object.entries(instances)) {
       const i = info as any;
+      const successRate = i.timing?.search?.success_percentage;
       if (
         i.http?.status_code === 200 &&
         !i.http?.error &&
-        i.timing?.search?.success_percentage != null &&
-        i.timing.search.success_percentage >= 90 &&
+        successRate != null &&
+        successRate >= 80 &&
         i.version
       ) {
         working.push({
           url,
-          successRate: i.timing.search.success_percentage,
+          successRate,
           avgTiming: i.timing.search.all?.median ?? 1,
+          failCount: 0,
         });
       }
     }
 
-    working.sort((a, b) => b.successRate - a.successRate);
+    working.sort((a, b) => {
+      if (b.successRate !== a.successRate) return b.successRate - a.successRate;
+      return a.avgTiming - b.avgTiming;
+    });
 
     if (working.length > 0) {
       cachedInstances = working;
       lastFetchTime = Date.now();
+      consecutiveFailures = 0;
     }
   } catch (err) {
     console.error('Failed to fetch SearXNG instances:', err);
+  }
+
+  if (cachedInstances.length === 0) {
+    cachedInstances = [...FALLBACK_INSTANCES];
+    lastFetchTime = Date.now();
   }
 
   return cachedInstances;
@@ -67,13 +104,28 @@ export async function getWorkingSearxngURL(): Promise<string | null> {
   const configURL = getSearxngURL();
   if (configURL) return configURL;
 
+  if (consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
+    await fetchInstances();
+  }
+
   const instances = await fetchInstances();
   if (instances.length === 0) return null;
 
-  currentIndex = (currentIndex + 1) % instances.length;
-  return instances[currentIndex].url;
+  const alive = instances.filter((i) => i.failCount === 0);
+  if (alive.length === 0) return null;
+
+  currentIndex = (currentIndex + 1) % alive.length;
+  return alive[currentIndex].url;
 }
 
 export function markSearxngFailed(url: string) {
-  cachedInstances = cachedInstances.filter((i) => i.url !== url);
+  consecutiveFailures++;
+  const inst = cachedInstances.find((i) => i.url === url);
+  if (inst) {
+    inst.failCount++;
+  }
+  if (consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
+    cachedInstances = [];
+    lastFetchTime = 0;
+  }
 }

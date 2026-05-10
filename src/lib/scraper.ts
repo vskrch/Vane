@@ -87,7 +87,11 @@ class Scraper {
         const parsed = new Readability(dom.window.document).parse();
         content = parsed?.textContent?.trim() ?? '';
       } catch {
-        content = html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().substring(0, 10000);
+        content = html
+          .replace(/<[^>]*>/g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim()
+          .substring(0, 10000);
       }
 
       return {
