@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fast search server using Google with caching"""
+"""Fast search server using DuckDuckGo with caching"""
 import re
 import urllib.parse
 import time
@@ -15,19 +15,24 @@ CACHE = {}
 CACHE_TTL = 300
 
 
-def google_search(query):
-    url = "https://www.google.com/search"
-    params = {"q": query, "hl": "en", "num": 20}
+def ddg_search(query):
+    url = "https://html.duckduckgo.com/html/"
+    data = {"q": query}
     try:
-        r = http.get(url, params=params, headers={"User-Agent": USER_AGENT}, timeout=TIMEOUT)
+        r = http.post(url, data=data, headers={"User-Agent": USER_AGENT}, timeout=TIMEOUT)
         if r.status_code != 200:
             return []
         results = []
-        for m in re.finditer(r'<a[^>]*href="/url\?q=([^"&]+)[^"]*"[^>]*>(?:<[^>]+>)*([^<]+)', r.text):
-            url = urllib.parse.unquote(m.group(1))
-            title = re.sub(r"<[^>]+>", "", m.group(2)).strip()
-            if url and title and not url.startswith("/"):
-                results.append({"title": title, "url": url, "content": ""})
+        for m in re.finditer(
+            r'<a[^>]*class="result__a"[^>]*href="([^"]+)"[^>]*>(.*?)</a>',
+            r.text,
+            re.DOTALL,
+        ):
+            results.append({
+                "title": re.sub(r"<[^>]+>", "", m.group(2)).strip(),
+                "url": m.group(1),
+                "content": "",
+            })
         return results[:20]
     except Exception:
         return []
@@ -48,8 +53,8 @@ def search():
         if time.time() - cached_time < CACHE_TTL:
             return jsonify(cached_result)
 
-    # Use Google search
-    results = google_search(q)
+    # Use DuckDuckGo search (more reliable than Google for scraping)
+    results = ddg_search(q)
 
     # Deduplicate
     seen = set()
