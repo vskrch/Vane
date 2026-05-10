@@ -5,6 +5,7 @@ import BaseModelProvider from '../../base/provider';
 import BaseLLM from '../../base/llm';
 import BaseEmbedding from '../../base/embedding';
 import NvidiaLLM from './nvidiaLLM';
+import NvidiaEmbedding from './nvidiaEmbedding';
 
 interface NvidiaConfig {
   apiKey: string;
@@ -93,9 +94,9 @@ class NvidiaProvider extends BaseModelProvider<NvidiaConfig> {
         key: m.id,
       }));
 
-      return { embedding: [], chat: models };
+      return { embedding: defaultEmbeddingModels, chat: models };
     } catch {
-      return { embedding: [], chat: defaultChatModels };
+      return { embedding: defaultEmbeddingModels, chat: defaultChatModels };
     }
   }
 
@@ -130,8 +131,21 @@ class NvidiaProvider extends BaseModelProvider<NvidiaConfig> {
     });
   }
 
-  async loadEmbeddingModel(_key: string): Promise<BaseEmbedding<any>> {
-    throw new Error('NVIDIA NIM Provider does not support embedding models.');
+  async loadEmbeddingModel(key: string): Promise<BaseEmbedding<any>> {
+    const modelList = await this.getModelList();
+    const exists = modelList.embedding.find((m) => m.key === key);
+
+    if (!exists) {
+      throw new Error(
+        'Error Loading NVIDIA NIM Embedding Model. Invalid Model Selected',
+      );
+    }
+
+    return new NvidiaEmbedding({
+      apiKey: this.config.apiKey,
+      model: key,
+      baseURL: this.config.baseURL,
+    });
   }
 
   static parseAndValidate(raw: any): NvidiaConfig {
