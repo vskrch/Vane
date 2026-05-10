@@ -75,7 +75,7 @@ async function fetchInstances(): Promise<SearXNGInstance[]> {
         signal: controller.signal,
         headers: {
           'User-Agent':
-            'Mozilla/5.0 (compatible; PerplexicaBot/1.0; +https://github.com/ItzCrazyKns/Perplexica)',
+            'Mozilla/5.0 (compatible; PerplexicaBot/1.0; +https://github.com/vskrch/Vane)',
         },
       });
       clearTimeout(timeout);
