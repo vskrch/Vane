@@ -14,27 +14,31 @@ interface NvidiaConfig {
 
 const defaultChatModels: Model[] = [
   {
-    name: 'Nemotron 3 Super',
-    key: 'nemotron-3-super',
+    name: 'Nemotron 3 Super 120B',
+    key: 'nvidia/nemotron-3-super-120b-a12b',
   },
   {
-    name: 'GPToss 120B',
-    key: 'gptoss-120b',
+    name: 'GPT-OSS 120B',
+    key: 'openai/gpt-oss-120b',
   },
   {
     name: 'Kimi K2.6',
-    key: 'kimi-k2-6',
+    key: 'moonshotai/kimi-k2.6',
   },
   {
     name: 'GLM 5.1',
-    key: 'glm-5-1',
+    key: 'z-ai/glm-5.1',
   },
 ];
 
 const defaultEmbeddingModels: Model[] = [
   {
     name: 'NV-Embed-QA',
-    key: 'nv-embed-qa',
+    key: 'nvidia/embed-qa-4',
+  },
+  {
+    name: 'Nemotron-3 Nano',
+    key: 'nvidia/llama-3.2-nemoretriever-300m-embed-v1',
   },
 ];
 
