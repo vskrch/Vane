@@ -49,7 +49,13 @@ async function fetchInstances(): Promise<SearXNGInstance[]> {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
 
-    const res = await fetch(SEARX_SPACE_URL, { signal: controller.signal });
+    const res = await fetch(SEARX_SPACE_URL, {
+      signal: controller.signal,
+      headers: {
+        'User-Agent':
+          'Mozilla/5.0 (compatible; VaneBot/1.0; +https://github.com/ItzCrazyKns/Vane)',
+      },
+    });
     clearTimeout(timeout);
 
     if (!res.ok) return cachedInstances;
