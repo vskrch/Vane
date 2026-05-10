@@ -7,6 +7,7 @@ import {
   Search,
   Sliders,
   ToggleRight,
+  Download,
 } from 'lucide-react';
 import Preferences from './Sections/Preferences';
 import { motion } from 'framer-motion';
@@ -18,6 +19,7 @@ import Models from './Sections/Models/Section';
 import SearchSection from './Sections/Search';
 import Select from '@/components/ui/Select';
 import Personalization from './Sections/Personalization';
+import Link from 'next/link';
 
 const sections = [
   {
@@ -175,47 +177,69 @@ const SettingsDialogue = ({
                       className="text-black/50 dark:text-white/50 group-hover:text-black/70 group-hover:dark:text-white/70"
                     />
                   </button>
-                  <Select
-                    options={sections.map((section) => {
-                      return {
-                        value: section.key,
-                        key: section.key,
-                        label: section.name,
-                      };
-                    })}
-                    value={activeSection}
-                    onChange={(e) => {
-                      setActiveSection(e.target.value);
-                    }}
-                    className="!text-xs lg:!text-sm"
+              <Select
+                options={sections.map((section) => {
+                  return {
+                    value: section.key,
+                    key: section.key,
+                    label: section.name,
+                  };
+                })}
+                value={activeSection}
+                onChange={(e) => {
+                  setActiveSection(e.target.value);
+                }}
+                className="!text-xs lg:!text-sm"
+              />
+            </div>
+            {selectedSection.component && (
+              <div className="flex flex-1 flex-col overflow-hidden">
+                <div className="border-b border-light-200/60 px-6 pb-6 lg:pt-6 dark:border-dark-200/60 flex-shrink-0">
+                  <div className="flex flex-col">
+                    <h4 className="font-medium text-black dark:text-white text-sm lg:text-sm">
+                      {selectedSection.name}
+                    </h4>
+                    <p className="text-[11px] lg:text-xs text-black/50 dark:text-white/50">
+                      {selectedSection.description}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex-1 overflow-y-auto">
+                  <selectedSection.component
+                    fields={config.fields[selectedSection.dataAdd]}
+                    values={config.values[selectedSection.dataAdd]}
                   />
                 </div>
-                {selectedSection.component && (
-                  <div className="flex flex-1 flex-col overflow-hidden">
-                    <div className="border-b border-light-200/60 px-6 pb-6 lg:pt-6 dark:border-dark-200/60 flex-shrink-0">
-                      <div className="flex flex-col">
-                        <h4 className="font-medium text-black dark:text-white text-sm lg:text-sm">
-                          {selectedSection.name}
-                        </h4>
-                        <p className="text-[11px] lg:text-xs text-black/50 dark:text-white/50">
-                          {selectedSection.description}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex-1 overflow-y-auto">
-                      <selectedSection.component
-                        fields={config.fields[selectedSection.dataAdd]}
-                        values={config.values[selectedSection.dataAdd]}
-                      />
-                    </div>
-                  </div>
-                )}
               </div>
+            )}
+            
+            {/* Extensions Link */}
+            <div className="mt-auto border-t border-light-200/60 dark:border-dark-200/60 p-4">
+              <Link
+                href="/extensions"
+                target="_blank"
+                className="flex items-center gap-3 p-3 rounded-lg bg-light-200 dark:bg-dark-200 hover:bg-light-300 dark:hover:bg-dark-300 transition duration-200 group"
+              >
+                <div className="p-2 rounded-lg bg-blue-500/10 group-hover:bg-blue-500/20 transition">
+                  <Download size={20} className="text-blue-500" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-black dark:text-white">
+                    Browser Extensions
+                  </p>
+                  <p className="text-xs text-black/60 dark:text-white/60">
+                    Install Chrome/Firefox extension
+                  </p>
+                </div>
+                <ExternalLink size={16} className="text-black/40 dark:text-white/40" />
+              </Link>
             </div>
-          )}
-        </DialogPanel>
-      </motion.div>
-    </Dialog>
+          </div>
+        </div>
+      )}
+    </DialogPanel>
+  </motion.div>
+</Dialog>
   );
 };
 

@@ -1,0 +1,26 @@
+{
+  "manifest_version": 3,
+  "name": "Perplexica - AI Search",
+  "version": "1.0.0",
+  "description": "Search with Perplexica AI directly from your browser",
+  "permissions": [],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icon16.png",
+      "48": "icon48.png",
+      "128": "icon128.png"
+    }
+  },
+  "chrome_settings_overrides": {
+    "search_provider": {
+      "name": "Perplexica",
+      "keyword": "perplexica",
+      "search_url": "https://perplexica-9d84002fd261.herokuapp.com/search?q={searchTerms}",
+      "is_default": false
+    }
+  }
+}
