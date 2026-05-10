@@ -1,15 +1,17 @@
 #!/usr/bin/env python3
-"""Minimal SearXNG-compatible search server"""
+"""Minimal SearXNG-compatible search server - optimized for speed"""
 import re
 import urllib.parse
 from flask import Flask, request, jsonify
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import requests as http
 
 app = Flask(__name__)
 app.config["JSONIFY_PRETTYPRINT_REGULAR"] = False
 
 USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
-TIMEOUT = 8
+TIMEOUT = 4  # Reduced timeout for faster fallback
+MAX_WORKERS = 4
 
 ENGINES = {
     "google": lambda q: google_search(q),
@@ -109,16 +111,26 @@ def search():
     if not q:
         return jsonify({"results": [], "suggestions": []})
 
-    all_results = []
-    for name, fn in [("google", google_search), ("duckduckgo", ddg_search), ("bing", bing_search), ("brave", brave_search)]:
-        try:
-            results = fn(q)
-            if results:
-                all_results.extend(results)
-                break
-        except Exception:
-            continue
+    # Run all search engines in parallel for speed
+    engines = [
+        ("google", google_search),
+        ("duckduckgo", ddg_search),
+        ("bing", bing_search),
+        ("brave", brave_search),
+    ]
 
+    all_results = []
+    with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+        futures = {executor.submit(fn, q): name for name, fn in engines}
+        for future in as_completed(futures):
+            try:
+                results = future.result(timeout=TIMEOUT + 1)
+                if results:
+                    all_results.extend(results)
+            except Exception:
+                continue
+
+    # Deduplicate results
     seen = set()
     unique = []
     for r in all_results:
