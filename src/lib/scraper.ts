@@ -1,4 +1,3 @@
-import { JSDOM } from 'jsdom';
 import { Readability } from '@mozilla/readability';
 import { Mutex } from 'async-mutex';
 
@@ -78,21 +77,25 @@ class Scraper {
       await page.waitForTimeout(500);
 
       const html = await page.content();
-
-      const dom = new JSDOM(html, {
-        url,
-      });
-
-      const content = new Readability(dom.window.document).parse();
-
       const title = await page.title();
+
+      let content = '';
+
+      try {
+        const { JSDOM } = await import('jsdom');
+        const dom = new JSDOM(html, { url });
+        const parsed = new Readability(dom.window.document).parse();
+        content = parsed?.textContent?.trim() ?? '';
+      } catch {
+        content = html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().substring(0, 10000);
+      }
 
       return {
         content: `
         # ${title ?? 'No title'} - ${url}
-        ${content?.textContent?.trim() ?? 'No content available'}
+        ${content || 'No content available'}
         `,
-        title,
+        title: title ?? 'No title',
       };
     } catch (err) {
       console.log(`Error scraping ${url}:`, err);

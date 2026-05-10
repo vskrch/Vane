@@ -24,6 +24,10 @@ export const searchSearxng = async (
 ) => {
   const searxngURL = getSearxngURL();
 
+  if (!searxngURL) {
+    return { results: [], suggestions: [] };
+  }
+
   const url = new URL(`${searxngURL}/search?format=json`);
   url.searchParams.append('q', query);
 
