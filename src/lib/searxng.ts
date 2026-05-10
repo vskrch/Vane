@@ -1,4 +1,4 @@
-import { getSearxngURL } from './config/serverRegistry';
+import { getWorkingSearxngURL, markSearxngFailed } from './searxng-resolver';
 
 export interface SearxngSearchOptions {
   categories?: string[];
@@ -22,7 +22,7 @@ export const searchSearxng = async (
   query: string,
   opts?: SearxngSearchOptions,
 ) => {
-  const searxngURL = getSearxngURL();
+  const searxngURL = await getWorkingSearxngURL();
 
   if (!searxngURL) {
     return { results: [], suggestions: [] };
@@ -51,6 +51,7 @@ export const searchSearxng = async (
     });
 
     if (!res.ok) {
+      markSearxngFailed(searxngURL);
       throw new Error(`SearXNG error: ${res.statusText}`);
     }
 
@@ -62,8 +63,10 @@ export const searchSearxng = async (
     return { results, suggestions };
   } catch (err: any) {
     if (err.name === 'AbortError') {
+      markSearxngFailed(searxngURL);
       throw new Error('SearXNG search timed out');
     }
+    markSearxngFailed(searxngURL);
     throw err;
   } finally {
     clearTimeout(timeoutId);
