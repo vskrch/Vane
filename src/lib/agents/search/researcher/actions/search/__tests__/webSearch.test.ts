@@ -55,7 +55,7 @@ describe('webSearchAction', () => {
 
   describe('getToolDescription', () => {
     it('returns a string', () => {
-      const desc = webSearchAction.getToolDescription();
+      const desc = webSearchAction.getToolDescription({ mode: 'balanced' });
       expect(typeof desc).toBe('string');
       expect(desc.length).toBeGreaterThan(0);
     });
@@ -191,7 +191,9 @@ describe('webSearchAction', () => {
         }),
       );
       expect(result.type).toBe('search_results');
-      expect(result.results).toEqual([{ content: 'test', metadata: {} }]);
+      if (result.type === 'search_results') {
+        expect(result.results).toEqual([{ content: 'test', metadata: {} }]);
+      }
     });
 
     it('handles string query as single element', async () => {

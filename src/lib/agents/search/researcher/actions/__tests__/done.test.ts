@@ -33,7 +33,7 @@ describe('doneAction', () => {
 
   describe('getToolDescription', () => {
     it('returns a non-empty string', () => {
-      const desc = doneAction.getToolDescription();
+      const desc = doneAction.getToolDescription({ mode: 'balanced' });
       expect(typeof desc).toBe('string');
       expect(desc.length).toBeGreaterThan(0);
     });
@@ -41,7 +41,7 @@ describe('doneAction', () => {
 
   describe('getDescription', () => {
     it('returns a non-empty string', () => {
-      const desc = doneAction.getDescription({} as any);
+      const desc = doneAction.getDescription({ mode: 'balanced' });
       expect(typeof desc).toBe('string');
       expect(desc.length).toBeGreaterThan(0);
     });

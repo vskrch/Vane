@@ -48,13 +48,15 @@ describe('planAction (__reasoning_preamble)', () => {
         {} as any,
       );
       expect(result.type).toBe('reasoning');
-      expect(result.reasoning).toBe('Searching for information...');
+      if (result.type === 'reasoning') {
+        expect(result.reasoning).toBe('Searching for information...');
+      }
     });
   });
 
   describe('getToolDescription', () => {
     it('returns a non-empty string', () => {
-      const desc = planAction.getToolDescription();
+      const desc = planAction.getToolDescription({ mode: 'balanced' });
       expect(typeof desc).toBe('string');
       expect(desc.length).toBeGreaterThan(0);
     });
@@ -62,7 +64,7 @@ describe('planAction (__reasoning_preamble)', () => {
 
   describe('getDescription', () => {
     it('returns a non-empty string', () => {
-      const desc = planAction.getDescription({} as any);
+      const desc = planAction.getDescription({ mode: 'balanced' });
       expect(typeof desc).toBe('string');
       expect(desc.length).toBeGreaterThan(0);
     });

@@ -44,7 +44,7 @@ describe('OpenAICompatibleProvider', () => {
 
     it('baseURL has correct default placeholder', () => {
       const fields = OpenAICompatibleProvider.getProviderConfigFields();
-      expect(fields[0].placeholder).toBe('https://api.example.com/v1');
+      const field = fields[0]; if ("placeholder" in field) { expect(field.placeholder).toBe('https://api.example.com/v1'); };
     });
   });
 

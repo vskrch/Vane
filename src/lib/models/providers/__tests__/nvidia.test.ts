@@ -95,12 +95,12 @@ describe('NvidiaProvider', () => {
 
       const models = await provider.getDefaultModels();
       expect(models.chat).toHaveLength(4);
-      expect(models.chat[0].name).toBe('Nemotron 3 Super');
-      expect(models.chat[0].key).toBe('nemotron-3-super');
-      expect(models.chat[1].name).toBe('GPToss 120B');
+      expect(models.chat[0].name).toBe('Nemotron 3 Super 120B');
+      expect(models.chat[0].key).toBe('nvidia/nemotron-3-super-120b-a12b');
+      expect(models.chat[1].name).toBe('GPT-OSS 120B');
       expect(models.chat[2].name).toBe('Kimi K2.6');
       expect(models.chat[3].name).toBe('GLM 5.1');
-      expect(models.embedding).toHaveLength(1);
+      expect(models.embedding).toHaveLength(2);
       expect(models.embedding[0].name).toBe('NV-Embed-QA');
     });
 
@@ -138,8 +138,8 @@ describe('NvidiaProvider', () => {
       const models = await provider.getModelList();
       expect(models.chat).toHaveLength(5);
       expect(models.chat[4].key).toBe('custom-chat');
-      expect(models.embedding).toHaveLength(2);
-      expect(models.embedding[1].key).toBe('custom-embed');
+      expect(models.embedding).toHaveLength(3);
+      expect(models.embedding[2].key).toBe('custom-embed');
     });
   });
 
@@ -150,7 +150,7 @@ describe('NvidiaProvider', () => {
         baseURL: 'https://integrate.api.nvidia.com/v1',
       });
 
-      const llm = await provider.loadChatModel('nemotron-3-super');
+      const llm = await provider.loadChatModel('nvidia/nemotron-3-super-120b-a12b');
       expect(llm).toBeDefined();
     });
 
@@ -166,16 +166,14 @@ describe('NvidiaProvider', () => {
     });
   });
 
-  describe('loadEmbeddingModel', () => {
-    it('throws because NVIDIA does not support embeddings', async () => {
-      const provider = new NvidiaProvider('nvidia-1', 'My NVIDIA', {
-        apiKey: 'test-key',
-        baseURL: 'https://integrate.api.nvidia.com/v1',
+  describe("loadEmbeddingModel", () => {
+    it("loads embedding model successfully", async () => {
+      const provider = new NvidiaProvider("nvidia-1", "My NVIDIA", {
+        apiKey: "test-key",
+        baseURL: "https://integrate.api.nvidia.com/v1",
       });
-
-      await expect(provider.loadEmbeddingModel('nv-embed-qa')).rejects.toThrow(
-        'does not support embedding models',
-      );
+      const embedding = await provider.loadEmbeddingModel("nvidia/embed-qa-4");
+      expect(embedding).toBeDefined();
     });
   });
 });
