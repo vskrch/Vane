@@ -18,23 +18,23 @@ const MAX_FAILS = 3;
 
 const FALLBACK_INSTANCES: SearXNGInstance[] = [
   {
-    url: 'https://baresearch.org',
+    url: 'https://copp.gg',
     successRate: 100,
     avgTiming: 0.8,
     failCount: 0,
     cooldownUntil: 0,
   },
   {
-    url: 'https://etsi.me',
+    url: 'https://search.2b9t.xyz',
     successRate: 100,
     avgTiming: 0.5,
     failCount: 0,
     cooldownUntil: 0,
   },
   {
-    url: 'https://search.sapti.me',
-    successRate: 99,
-    avgTiming: 0.9,
+    url: 'https://opnxng.com',
+    successRate: 98,
+    avgTiming: 0.6,
     failCount: 0,
     cooldownUntil: 0,
   },
@@ -46,9 +46,9 @@ const FALLBACK_INSTANCES: SearXNGInstance[] = [
     cooldownUntil: 0,
   },
   {
-    url: 'https://opnxng.com',
-    successRate: 98,
-    avgTiming: 0.6,
+    url: 'https://searxng.site',
+    successRate: 95,
+    avgTiming: 1.0,
     failCount: 0,
     cooldownUntil: 0,
   },

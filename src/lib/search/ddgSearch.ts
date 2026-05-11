@@ -38,10 +38,8 @@ export async function ddgSearch(query: string): Promise<SearchResult[]> {
     const html = await res.text();
     const results: SearchResult[] = [];
 
-    const resultRegex =
-      /<a[^>]*class="result__a"[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>[\s\S]*?<a[^>]*class="result__snippet"[^>]*>([\s\S]*?)<\/a>/g;
-
     function decodeDdgUrl(href: string): string {
+      if (!href) return '';
       if (href.startsWith('/l/?uddg=') || href.startsWith('https://duckduckgo.com/l/?uddg=')) {
         const uddgIndex = href.indexOf('uddg=');
         if (uddgIndex !== -1) {
@@ -52,7 +50,6 @@ export async function ddgSearch(query: string): Promise<SearchResult[]> {
           }
         }
       }
-      // Handle relative URLs
       if (href.startsWith('//')) {
         return 'https:' + href;
       }
@@ -62,36 +59,21 @@ export async function ddgSearch(query: string): Promise<SearchResult[]> {
       return href;
     }
 
+    // Use simple pattern matching the Python search-server.py approach
+    const resultRegex = /<a[^>]*class="result__a"[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/g;
+    
     let match;
     while ((match = resultRegex.exec(html)) !== null) {
       const rawHref = match[1];
       const title = match[2].replace(/<[^>]+>/g, '').trim();
-      const snippet = match[3].replace(/<[^>]+>/g, '').trim();
       const href = decodeDdgUrl(rawHref);
 
-      if (href && title) {
+      if (href && title && href.startsWith('http') && !results.find((r) => r.url === href)) {
         results.push({
           title,
           url: href,
-          content: snippet,
+          content: '',
         });
-      }
-    }
-
-    if (results.length === 0) {
-      const simpleRegex =
-        /<a[^>]*class="result__a"[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/g;
-      while ((match = simpleRegex.exec(html)) !== null) {
-        const rawHref = match[1];
-        const title = match[2].replace(/<[^>]+>/g, '').trim();
-        const href = decodeDdgUrl(rawHref);
-        if (href && title && !results.find((r) => r.url === href)) {
-          results.push({
-            title,
-            url: href,
-            content: '',
-          });
-        }
       }
     }
 

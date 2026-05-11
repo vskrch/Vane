@@ -206,7 +206,13 @@ class ConfigManager {
 
     const newProviders: ConfigModelProvider[] = [];
 
-    providerConfigSections.forEach((provider) => {
+    // Prioritize NVIDIA NIM as default if available
+    const nvidiaProvider = providerConfigSections.find((p) => p.key === 'nvidia');
+    const otherProviders = providerConfigSections.filter((p) => p.key !== 'nvidia');
+
+    const orderedProviders = nvidiaProvider ? [nvidiaProvider, ...otherProviders] : providerConfigSections;
+
+    orderedProviders.forEach((provider) => {
       const newProvider: ConfigModelProvider & { required?: string[] } = {
         id: crypto.randomUUID(),
         name: `${provider.name}`,

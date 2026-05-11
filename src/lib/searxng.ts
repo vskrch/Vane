@@ -1,5 +1,4 @@
 import { getWorkingSearxngURL, markSearxngFailed } from './searxng-resolver';
-import { ddgSearch } from './search/ddgSearch';
 
 export interface SearxngSearchOptions {
   categories?: string[];
@@ -19,32 +18,14 @@ interface SearxngSearchResult {
   iframe_src?: string;
 }
 
-async function searchWithProxy(query: string): Promise<{ results: SearxngSearchResult[]; suggestions: string[] }> {
-  try {
-    const results = await ddgSearch(query);
-    return {
-      results: results.map((r) => ({
-        title: r.title,
-        url: r.url,
-        content: r.content,
-      })),
-      suggestions: [],
-    };
-  } catch (err: any) {
-    console.error('Built-in search proxy failed:', err.message);
-    return { results: [], suggestions: [] };
-  }
-}
-
 export const searchSearxng = async (
   query: string,
   opts?: SearxngSearchOptions,
 ) => {
   const searxngURL = await getWorkingSearxngURL();
 
-  // If no SearXNG available, use built-in proxy immediately
   if (!searxngURL) {
-    return searchWithProxy(query);
+    return { results: [], suggestions: [] };
   }
 
   const url = new URL(`${searxngURL}/search?format=json`);
@@ -62,7 +43,7 @@ export const searchSearxng = async (
   }
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 10000);
+  const timeoutId = setTimeout(() => controller.abort(), 20000);
 
   try {
     const res = await fetch(url, {
@@ -77,22 +58,13 @@ export const searchSearxng = async (
 
     if (!res.ok) {
       markSearxngFailed(searxngURL);
-      // Fallback to built-in proxy
-      return searchWithProxy(query);
+      return { results: [], suggestions: [] };
     }
 
     const data = await res.json();
 
     const results: SearxngSearchResult[] = data.results;
     const suggestions: string[] = data.suggestions;
-
-    // If SearXNG returns empty, try proxy as fallback
-    if (!results || results.length === 0) {
-      const proxyResult = await searchWithProxy(query);
-      if (proxyResult.results.length > 0) {
-        return proxyResult;
-      }
-    }
 
     return { results, suggestions };
   } catch (err: any) {
@@ -101,8 +73,7 @@ export const searchSearxng = async (
     } else {
       markSearxngFailed(searxngURL);
     }
-    // Fallback to built-in proxy on any error
-    return searchWithProxy(query);
+    return { results: [], suggestions: [] };
   } finally {
     clearTimeout(timeoutId);
   }
