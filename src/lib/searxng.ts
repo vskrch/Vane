@@ -1,4 +1,5 @@
 import { getWorkingSearxngURL, markSearxngFailed } from './searxng-resolver';
+import { ddgSearch } from './search/ddgSearch';
 
 export interface SearxngSearchOptions {
   categories?: string[];
@@ -18,14 +19,32 @@ interface SearxngSearchResult {
   iframe_src?: string;
 }
 
+async function searchWithProxy(query: string): Promise<{ results: SearxngSearchResult[]; suggestions: string[] }> {
+  try {
+    const results = await ddgSearch(query);
+    return {
+      results: results.map((r) => ({
+        title: r.title,
+        url: r.url,
+        content: r.content,
+      })),
+      suggestions: [],
+    };
+  } catch (err: any) {
+    console.error('Built-in search proxy failed:', err.message);
+    return { results: [], suggestions: [] };
+  }
+}
+
 export const searchSearxng = async (
   query: string,
   opts?: SearxngSearchOptions,
 ) => {
   const searxngURL = await getWorkingSearxngURL();
 
+  // If no SearXNG available, use built-in proxy immediately
   if (!searxngURL) {
-    return { results: [], suggestions: [] };
+    return searchWithProxy(query);
   }
 
   const url = new URL(`${searxngURL}/search?format=json`);
@@ -58,7 +77,8 @@ export const searchSearxng = async (
 
     if (!res.ok) {
       markSearxngFailed(searxngURL);
-      throw new Error(`SearXNG error: ${res.statusText}`);
+      // Fallback to built-in proxy
+      return searchWithProxy(query);
     }
 
     const data = await res.json();
@@ -66,14 +86,23 @@ export const searchSearxng = async (
     const results: SearxngSearchResult[] = data.results;
     const suggestions: string[] = data.suggestions;
 
+    // If SearXNG returns empty, try proxy as fallback
+    if (!results || results.length === 0) {
+      const proxyResult = await searchWithProxy(query);
+      if (proxyResult.results.length > 0) {
+        return proxyResult;
+      }
+    }
+
     return { results, suggestions };
   } catch (err: any) {
     if (err.name === 'AbortError') {
       markSearxngFailed(searxngURL);
-      throw new Error('SearXNG search timed out');
+    } else {
+      markSearxngFailed(searxngURL);
     }
-    markSearxngFailed(searxngURL);
-    throw err;
+    // Fallback to built-in proxy on any error
+    return searchWithProxy(query);
   } finally {
     clearTimeout(timeoutId);
   }

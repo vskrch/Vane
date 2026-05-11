@@ -5,12 +5,21 @@ import EmptyChatMessageInput from './EmptyChatMessageInput';
 import WeatherWidget from './WeatherWidget';
 import NewsArticleWidget from './NewsArticleWidget';
 import SettingsButtonMobile from '@/components/Settings/SettingsButtonMobile';
+import { useChat } from '@/lib/hooks/useChat';
 import {
   getShowNewsWidget,
   getShowWeatherWidget,
 } from '@/lib/config/clientRegistry';
 
+const suggestedQuestions = [
+  'What are the latest breakthroughs in AI?',
+  'Explain quantum computing in simple terms',
+  'Best practices for React performance optimization',
+  'How does the Federal Reserve affect inflation?',
+];
+
 const EmptyChat = () => {
+  const { sendMessage } = useChat();
   const [showWeather, setShowWeather] = useState(() =>
     typeof window !== 'undefined' ? getShowWeatherWidget() : false,
   );
@@ -55,6 +64,19 @@ const EmptyChat = () => {
           </div>
           <div className="w-full">
             <EmptyChatMessageInput />
+          </div>
+          <div className="w-full">
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              {suggestedQuestions.map((q, i) => (
+                <button
+                  key={i}
+                  onClick={() => sendMessage(q)}
+                  className="px-3 py-1.5 text-xs sm:text-sm rounded-full border border-light-200 dark:border-dark-200 bg-light-secondary dark:bg-dark-secondary text-black/60 dark:text-white/60 hover:text-black dark:hover:text-white hover:border-light-300 dark:hover:border-dark-300 transition-all duration-200"
+                >
+                  {q}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </div>

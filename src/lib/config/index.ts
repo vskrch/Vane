@@ -260,6 +260,14 @@ class ConfigManager {
       }
     });
 
+    // Auto-mark setup complete if providers are configured
+    if (
+      !this.currentConfig.setupComplete &&
+      this.currentConfig.modelProviders.length > 0
+    ) {
+      this.currentConfig.setupComplete = true;
+    }
+
     this.saveConfig();
   }
 
