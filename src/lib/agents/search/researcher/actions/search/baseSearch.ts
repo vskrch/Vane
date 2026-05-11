@@ -1,6 +1,5 @@
 import BaseEmbedding from '@/lib/models/base/embedding';
 import BaseLLM from '@/lib/models/base/llm';
-import { searchSearxng, SearxngSearchOptions } from '@/lib/searxng';
 import SessionManager from '@/lib/session';
 import { Chunk, ResearchBlock, SearchResultsResearchBlock } from '@/lib/types';
 import { SearchAgentConfig } from '../../../types';
@@ -9,10 +8,28 @@ import z from 'zod';
 import Scraper from '@/lib/scraper';
 import { splitText } from '@/lib/utils/splitText';
 
+async function searchWithProxy(query: string): Promise<{ results: any[] }> {
+  try {
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const res = await fetch(`${baseUrl}/api/search-proxy?q=${encodeURIComponent(query)}`, {
+      signal: AbortSignal.timeout(15000),
+    });
+
+    if (!res.ok) {
+      throw new Error(`Search proxy error: ${res.status}`);
+    }
+
+    const data = await res.json();
+    return data;
+  } catch (err) {
+    console.error('Search proxy error:', err);
+    return { results: [] };
+  }
+}
+
 export const executeSearch = async (input: {
   queries: string[];
   mode: SearchAgentConfig['mode'];
-  searchConfig?: SearxngSearchOptions;
   researchBlock: ResearchBlock;
   session: InstanceType<typeof SessionManager>;
   llm: BaseLLM<any>;
@@ -41,9 +58,7 @@ export const executeSearch = async (input: {
     const results: Chunk[] = [];
 
     const search = async (q: string) => {
-      const res = await searchSearxng(q, {
-        ...(input.searchConfig ? input.searchConfig : {}),
-      });
+      const res = await searchWithProxy(q);
 
       let resultChunks: Chunk[] = [];
 
@@ -52,7 +67,7 @@ export const executeSearch = async (input: {
 
         resultChunks = (
           await Promise.all(
-            res.results.map(async (r) => {
+            res.results.map(async (r: any) => {
               const content = r.content || r.title;
               const chunkEmbedding = (
                 await input.embedding.embedText([content])
@@ -69,9 +84,9 @@ export const executeSearch = async (input: {
               };
             }),
           )
-        ).filter((c) => c.metadata.similarity > 0.5);
+        ).filter((c: any) => c.metadata.similarity > 0.5);
       } catch (err) {
-        resultChunks = res.results.map((r) => {
+        resultChunks = res.results.map((r: any) => {
           const content = r.content || r.title;
 
           return {
@@ -176,13 +191,11 @@ export const executeSearch = async (input: {
     const searchResults: Chunk[] = [];
 
     const search = async (q: string) => {
-      const res = await searchSearxng(q, {
-        ...(input.searchConfig ? input.searchConfig : {}),
-      });
+      const res = await searchWithProxy(q);
 
       let resultChunks: Chunk[] = [];
 
-      resultChunks = res.results.map((r) => {
+      resultChunks = res.results.map((r: any) => {
         const content = r.content || r.title;
 
         return {
@@ -424,13 +437,11 @@ export const executeSearch = async (input: {
     const searchResults: Chunk[] = [];
 
     const search = async (q: string) => {
-      const res = await searchSearxng(q, {
-        ...(input.searchConfig ? input.searchConfig : {}),
-      });
+      const res = await searchWithProxy(q);
 
       let resultChunks: Chunk[] = [];
 
-      resultChunks = res.results.map((r) => {
+      resultChunks = res.results.map((r: any) => {
         const content = r.content || r.title;
 
         return {
